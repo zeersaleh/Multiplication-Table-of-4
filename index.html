@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplication Quiz (x4)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles (identical to the x3 game for consistency) */
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+            text-shadow: 2px 2px #333; /* Add text shadow for retro feel */
+        }
+        .game-container {
+            background-color: rgba(0, 0, 0, 0.6); /* Darker semi-transparent background */
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            border: 4px solid #fff; /* White border */
+            max-width: 90%;
+            width: 500px; /* Fixed width for better layout control */
+        }
+        /* Style buttons */
+        button {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #ff6347; /* Tomato color */
+            color: white;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem; /* Adjusted font size */
+            margin: 10px 5px; /* Added horizontal margin */
+            transition: all 0.3s ease;
+            box-shadow: 0 5px #d9534f; /* Button shadow */
+            text-shadow: 1px 1px #333;
+            min-width: 100px; /* Ensure buttons have a minimum width */
+        }
+        button:hover {
+            background-color: #ff482b;
+            transform: translateY(-2px);
+            box-shadow: 0 7px #d9534f;
+        }
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px #d9534f;
+        }
+        #start-button, #restart-button {
+             background-color: #4CAF50; /* Green */
+             box-shadow: 0 5px #45a049;
+        }
+        #start-button:hover, #restart-button:hover {
+            background-color: #45a049;
+            box-shadow: 0 7px #45a049;
+        }
+         #start-button:active, #restart-button:active {
+            box-shadow: 0 2px #45a049;
+        }
+        /* Style answer buttons specifically */
+        .answer-options button {
+            background-color: #1e90ff; /* Dodger Blue */
+            box-shadow: 0 5px #1c86ee;
+        }
+        .answer-options button:hover {
+            background-color: #1c86ee;
+            box-shadow: 0 7px #1c86ee;
+        }
+        .answer-options button:active {
+            box-shadow: 0 2px #1c86ee;
+        }
+        /* Feedback styles */
+        #feedback {
+            font-size: 2rem; /* Larger emoji */
+            height: 40px; /* Reserve space for feedback */
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        /* Timer and Score styles */
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        /* Canvas for celebration */
+        #celebration-canvas {
+            display: none; /* Hidden initially */
+            background-color: rgba(0, 0, 0, 0.7); /* Slightly darker canvas */
+            border-radius: 15px;
+            margin-top: 20px;
+            width: 100%;
+            height: 300px; /* Fixed height */
+            border: 2px solid #fff;
+        }
+        /* Link style */
+        .insta-link {
+            margin-top: 25px;
+            font-size: 0.8rem;
+        }
+        .insta-link a {
+            color: #ffeb3b; /* Yellow link */
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .insta-link a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+        /* Hide elements */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="text-3xl font-bold mb-6">Times Table Quiz (x4)</h1>
+
+        <div id="start-screen">
+            <p class="mb-4">Press Start to begin!</p>
+            <button id="start-button">Start Game</button>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div class="stats">
+                <div id="score">Score: 0</div>
+                <div id="timer">Time: 0s</div>
+            </div>
+            <h2 id="question" class="text-2xl mb-4">4 x ? = ?</h2>
+            <div id="feedback"></div> <div id="answer-options" class="flex flex-wrap justify-center">
+                </div>
+        </div>
+
+        <div id="end-screen" class="hidden">
+            <h2 id="end-message" class="text-2xl mb-4">Congratulations!</h2>
+            <p id="final-time" class="mb-4">Your time: 0s</p>
+            <canvas id="celebration-canvas"></canvas>
+            <button id="restart-button" class="mt-4">Play Again?</button>
+        </div>
+
+        <div class="insta-link">
+            <p>Follow on Instagram:
+                <a href="https://www.instagram.com/saleh__zeer/" target="_blank" rel="noopener noreferrer">@saleh__zeer</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements (identical to x3 game)
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const questionElement = document.getElementById('question');
+        const answerOptionsElement = document.getElementById('answer-options');
+        const feedbackElement = document.getElementById('feedback');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+        const endMessageElement = document.getElementById('end-message');
+        const finalTimeElement = document.getElementById('final-time');
+        const celebrationCanvas = document.getElementById('celebration-canvas');
+        const ctx = celebrationCanvas.getContext('2d');
+
+        // Game State (identical structure)
+        let score = 0;
+        let questionNumber = 0;
+        const maxQuestions = 10; // Target score
+        let currentCorrectAnswer;
+        let timerInterval;
+        let startTime;
+        let gameActive = false;
+        let availableMultipliers = [];
+
+        // Sound Synthesis (Tone.js) - (identical setup)
+        let synth;
+        let correctSound, wrongSound;
+
+        function setupSounds() {
+            if (!synth) {
+                 synth = new Tone.Synth().toDestination();
+                 correctSound = () => {
+                     synth.triggerAttackRelease("C5", "8n", Tone.now());
+                 };
+                 wrongSound = () => {
+                     synth.triggerAttackRelease("C3", "8n", Tone.now());
+                 };
+            }
+        }
+
+        // --- Celebration Animation --- (identical implementation)
+        let animationFrameId;
+        let particles = [];
+        const particleTypes = ['🎈', '🗿', '✨', '🎉', '🌟'];
+
+        function createParticle() {
+            const x = Math.random() * celebrationCanvas.width;
+            const y = celebrationCanvas.height + 20;
+            const size = Math.random() * 15 + 15;
+            const speedY = Math.random() * 2 + 1;
+            const type = particleTypes[Math.floor(Math.random() * particleTypes.length)];
+            particles.push({ x, y, size, speedY, type });
+        }
+
+        function animateCelebration() {
+            // Ensure canvas dimensions are set before drawing (important if canvas was hidden)
+             if (celebrationCanvas.width !== celebrationCanvas.offsetWidth || celebrationCanvas.height !== celebrationCanvas.offsetHeight) {
+                celebrationCanvas.width = celebrationCanvas.offsetWidth;
+                celebrationCanvas.height = celebrationCanvas.offsetHeight;
+             }
+
+            ctx.clearRect(0, 0, celebrationCanvas.width, celebrationCanvas.height);
+
+            if (Math.random() < 0.1) {
+                createParticle();
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.y -= p.speedY;
+                ctx.font = `${p.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.fillText(p.type, p.x, p.y);
+                if (p.y < -p.size) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            if (gameActive === false && score === maxQuestions) {
+                 animationFrameId = requestAnimationFrame(animateCelebration);
+            }
+        }
+
+         function stopCelebrationAnimation() {
+             if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null; // Reset the ID
+             }
+             particles = [];
+             // Clear canvas only if it exists and has context
+             if (ctx) {
+                ctx.clearRect(0, 0, celebrationCanvas.width, celebrationCanvas.height);
+             }
+        }
+
+
+        // --- Game Logic ---
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function generateQuestion() {
+            if (availableMultipliers.length === 0) {
+                 endGame(true); // Should have enough questions based on maxQuestions
+                 return;
+            }
+
+            const randomIndex = Math.floor(Math.random() * availableMultipliers.length);
+            const multiplier = availableMultipliers.splice(randomIndex, 1)[0];
+
+            // *** The main change: Use 4 instead of 3 ***
+            currentCorrectAnswer = 4 * multiplier;
+            questionElement.textContent = `4 x ${multiplier} = ?`;
+            // *** End of main change ***
+
+            const options = [currentCorrectAnswer];
+            while (options.length < 4) {
+                // Generate wrong answers, ensuring they are positive and distinct
+                let wrongAnswer = Math.max(1, currentCorrectAnswer + Math.floor(Math.random() * 11) - 5); // +/- 5, min 1
+                 // Ensure wrong answer is sufficiently different, especially for smaller correct answers
+                 if (Math.abs(wrongAnswer - currentCorrectAnswer) < 2 && currentCorrectAnswer > 1) {
+                     wrongAnswer += (Math.random() < 0.5 ? 2 : -2); // Push it further away
+                     wrongAnswer = Math.max(1, wrongAnswer); // Ensure it's still positive
+                 }
+                if (!options.includes(wrongAnswer) && wrongAnswer !== currentCorrectAnswer) {
+                    options.push(wrongAnswer);
+                }
+            }
+
+            shuffleArray(options);
+
+            answerOptionsElement.innerHTML = '';
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.onclick = () => checkAnswer(option);
+                answerOptionsElement.appendChild(button);
+            });
+
+            feedbackElement.textContent = '';
+        }
+
+        function checkAnswer(selectedAnswer) {
+            if (!gameActive) return;
+
+            if (selectedAnswer === currentCorrectAnswer) {
+                score++;
+                scoreElement.textContent = `Score: ${score}`;
+                feedbackElement.textContent = '✅ Correct!';
+                if (correctSound) correctSound();
+
+                if (score >= maxQuestions) {
+                    endGame(true);
+                } else {
+                    setTimeout(generateQuestion, 800);
+                }
+            } else {
+                feedbackElement.textContent = `❌ Wrong!`;
+                 if (wrongSound) wrongSound();
+                 setTimeout(generateQuestion, 800); // Move to next question even if wrong
+            }
+        }
+
+        function updateTimer() {
+            const now = Date.now();
+            const elapsedTime = Math.floor((now - startTime) / 1000);
+            timerElement.textContent = `Time: ${elapsedTime}s`;
+        }
+
+        function startGame() {
+            Tone.start().then(setupSounds); // Ensure audio context is ready
+
+            gameActive = true;
+            score = 0;
+            questionNumber = 0;
+            // Use multipliers 1 to 12, shuffle, and take the first 'maxQuestions'
+            availableMultipliers = Array.from({length: 12}, (_, i) => i + 1);
+            shuffleArray(availableMultipliers);
+            availableMultipliers = availableMultipliers.slice(0, maxQuestions);
+
+            scoreElement.textContent = `Score: ${score}`;
+            feedbackElement.textContent = '';
+            startScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            celebrationCanvas.style.display = 'none'; // Hide canvas initially
+            stopCelebrationAnimation(); // Stop any previous animation
+
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000);
+            updateTimer();
+
+            generateQuestion();
+        }
+
+        function endGame(isWin) {
+            gameActive = false;
+            clearInterval(timerInterval);
+
+            gameScreen.classList.add('hidden');
+            endScreen.classList.remove('hidden');
+
+            if (isWin) {
+                const endTime = Date.now();
+                const totalTime = Math.floor((endTime - startTime) / 1000);
+                endMessageElement.textContent = "🎉 You did it! 🎉";
+                finalTimeElement.textContent = `Your time: ${totalTime}s`;
+                celebrationCanvas.style.display = 'block'; // Show canvas
+                particles = []; // Reset particles
+                // Start animation slightly delayed to ensure canvas is visible and sized
+                requestAnimationFrame(() => {
+                     animateCelebration();
+                });
+            } else {
+                endMessageElement.textContent = "Game Over";
+                finalTimeElement.textContent = "";
+                celebrationCanvas.style.display = 'none';
+            }
+        }
+
+        // Event Listeners
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+
+        // Resize handler (identical)
+        window.addEventListener('resize', () => {
+            if (celebrationCanvas.style.display === 'block') {
+                 stopCelebrationAnimation(); // Stop current animation
+                 celebrationCanvas.width = celebrationCanvas.offsetWidth;
+                 celebrationCanvas.height = celebrationCanvas.offsetHeight;
+                 // Restart animation with new dimensions if the game is still in the ended state
+                 if (!gameActive && score === maxQuestions) {
+                     particles = []; // Reset particles
+                     animateCelebration();
+                 }
+            }
+        });
+
+    </script>
+</body>
+</html>
